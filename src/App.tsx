@@ -156,9 +156,20 @@ function App() {
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
 
+  const validContactName = (value: string) => /^[\p{L}\p{M}][\p{L}\p{M} .'-]{1,79}$/u.test(value.trim());
+  const validPhone = (value: string) => !value.trim() || (/^\+?[0-9() -]+$/.test(value.trim()) && (value.match(/\d/g) || []).length >= 7 && (value.match(/\d/g) || []).length <= 15);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (sending) return;
+    if (!validContactName(form.contact)) {
+      setSendError("Please enter a valid contact name using letters, spaces, apostrophes, or hyphens.");
+      return;
+    }
+    if (!validPhone(form.phone)) {
+      setSendError("Please enter a valid phone number (7–15 digits), or leave it blank.");
+      return;
+    }
     setSending(true);
     setSendError("");
     try {
@@ -489,22 +500,22 @@ function App() {
                 <form onSubmit={handleSubmit}>
                   <div className="form-title"><span>{isGeneralInquiry ? "BUSINESS INQUIRY" : "REQUEST A QUOTATION"}</span><span>ALL FIELDS MARKED * ARE REQUIRED</span></div>
                   <div className="form-grid">
-                    <label>Company name *<input required value={form.company} onChange={e=>update("company",e.target.value)} placeholder="Your company"/></label>
-                    <label>Contact person *<input required value={form.contact} onChange={e=>update("contact",e.target.value)} placeholder="Full name"/></label>
-                    <label>Email address *<input required type="email" value={form.email} onChange={e=>update("email",e.target.value)} placeholder="name@company.com"/></label>
-                    <label>Phone number<input value={form.phone} onChange={e=>update("phone",e.target.value)} placeholder="+63"/></label>
+                    <label>Company name *<input required maxLength={120} value={form.company} onChange={e=>update("company",e.target.value)} placeholder="Your company"/></label>
+                    <label>Contact person *<input required minLength={2} maxLength={80} pattern="[^0-9<>]+" title="Use letters, spaces, apostrophes, periods or hyphens; no numbers." value={form.contact} onChange={e=>update("contact",e.target.value.replace(/[0-9<>]/g, ""))} placeholder="Full name"/></label>
+                    <label>Email address *<input required type="email" maxLength={254} value={form.email} onChange={e=>update("email",e.target.value)} placeholder="name@company.com"/></label>
+                    <label>Phone number<input type="tel" inputMode="tel" maxLength={24} pattern="[+0-9() -]*" title="Use digits and phone formatting only (e.g. +63 956 507 3324)." value={form.phone} onChange={e=>update("phone",e.target.value.replace(/[^0-9+() -]/g, ""))} placeholder="+63"/></label>
                     <label className="full">Service required *<select required value={form.service} onChange={e=>update("service",e.target.value)}><option value="">Select a service</option>{services.map(s=><option key={s.n}>{s.title}</option>)}<option value="Business Partnership / Collaboration">Business Partnership / Collaboration</option><option value="Others / General Inquiry">Others / General Inquiry</option></select></label>
                     {isGeneralInquiry ? (
                       <label className="full">{form.service === "Business Partnership / Collaboration" ? "Partnership Details *" : "Tell Us About Your Inquiry *"}
-                        <textarea required rows={5} value={form.message} onChange={e=>update("message",e.target.value)}
+                        <textarea required rows={5} maxLength={3000} value={form.message} onChange={e=>update("message",e.target.value)}
                           placeholder={form.service === "Business Partnership / Collaboration" ? "Tell us about your company and the partnership opportunity you would like to explore." : "How can OFFLIMITS assist you?"}/>
                       </label>
                     ) : (
                       <>
-                        <label>Origin *<input required value={form.origin} onChange={e=>update("origin",e.target.value)} placeholder="Pickup location"/></label>
-                        <label>Destination *<input required value={form.destination} onChange={e=>update("destination",e.target.value)} placeholder="Delivery location"/></label>
-                        <label className="full">Cargo details *<textarea required rows={3} value={form.cargo} onChange={e=>update("cargo",e.target.value)} placeholder="Cargo type, estimated weight, dimensions, handling requirements..."/></label>
-                        <label className="full">Preferred schedule<input value={form.schedule} onChange={e=>update("schedule",e.target.value)} placeholder="Preferred date / recurring schedule"/></label>
+                        <label>Origin *<input required maxLength={160} value={form.origin} onChange={e=>update("origin",e.target.value)} placeholder="Pickup location"/></label>
+                        <label>Destination *<input required maxLength={160} value={form.destination} onChange={e=>update("destination",e.target.value)} placeholder="Delivery location"/></label>
+                        <label className="full">Cargo details *<textarea required rows={3} maxLength={3000} value={form.cargo} onChange={e=>update("cargo",e.target.value)} placeholder="Cargo type, estimated weight, dimensions, handling requirements..."/></label>
+                        <label className="full">Preferred schedule<input maxLength={160} value={form.schedule} onChange={e=>update("schedule",e.target.value)} placeholder="Preferred date / recurring schedule"/></label>
                       </>
                     )}
                   </div>
