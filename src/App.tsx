@@ -4,7 +4,7 @@ import {
   ArrowDownRight, ArrowRight, ArrowUpRight, Check,
   ClipboardCheck, FileCheck2, Menu, MapPin, ShieldCheck, Truck,
   Navigation, RadioTower, Building2, Package, Clock3, Handshake,
-  X, Send, Mail, Phone, MessageCircle, Facebook, Instagram, Route, Gauge, ChartNoAxesCombined, ScanLine, BatteryCharging, Moon, ShieldAlert, ShieldX
+  X, Send, Mail, Phone, MessageCircle, Facebook, Instagram, Route, Gauge, ChartNoAxesCombined, ScanLine, BatteryCharging, Moon, ShieldAlert, Search, ShieldX
 } from "lucide-react";
 
 const services = [
@@ -139,10 +139,14 @@ function App() {
   if (window.location.pathname.replace(/\/$/, "") === "/verify") return <VerificationPage />;
   const [menuOpen, setMenuOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
   const [form, setForm] = useState({
     company: "", contact: "", email: "", phone: "", service: "",
-    origin: "", destination: "", cargo: "", schedule: ""
+    origin: "", destination: "", cargo: "", schedule: "", message: ""
   });
+
+  const isGeneralInquiry = form.service === "Business Partnership / Collaboration" || form.service === "Others / General Inquiry";
 
   const nav = [
     ["Story", "#story"], ["Services", "#services"], ["Fleet", "#fleet"],
@@ -152,9 +156,40 @@ function App() {
   const update = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSubmitted(true);
+    if (sending) return;
+    setSending(true);
+    setSendError("");
+    try {
+      const inquiryDetails = isGeneralInquiry
+        ? { message: form.message }
+        : { origin: form.origin, destination: form.destination, cargo: form.cargo, schedule: form.schedule };
+      const response = await fetch("https://formspree.io/f/moedeaol", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          company: form.company,
+          contact: form.contact,
+          email: form.email,
+          phone: form.phone,
+          service: form.service,
+          ...inquiryDetails,
+          _subject: `OFFLIMITS inquiry: ${form.service}`,
+          _replyto: form.email
+        })
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const reason = data?.errors?.[0]?.message;
+        throw new Error(typeof reason === "string" ? reason : "Submission could not be completed.");
+      }
+      setSubmitted(true);
+    } catch (error) {
+      setSendError(error instanceof Error ? error.message : "Unable to send your inquiry. Please try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -450,21 +485,30 @@ function App() {
               <div className="contact-note">For corporate inquiries and transportation requirements, reach us through email, phone, WhatsApp, or Viber. Social media links will be added once confirmed.</div>
             </div>
             <div className="form-wrap">
-              {submitted ? <div className="form-success"><div className="success-icon"><Check/></div><h3>Inquiry details captured.</h3><p>This is a front-end demonstration only. No message has been sent. Connect the form to your chosen email or CRM service before publishing.</p><button className="button button-dark" onClick={() => setSubmitted(false)}>Submit another inquiry <ArrowRight size={16}/></button></div> :
+              {submitted ? <div className="form-success"><div className="success-icon"><Check/></div><h3>Inquiry submitted successfully.</h3><p>Thank you for contacting OFFLIMITS. Your inquiry has been received by our submission service. We will review your message and get back to you as soon as possible.</p><button className="button button-dark" onClick={() => setSubmitted(false)}>Submit another inquiry <ArrowRight size={16}/></button></div> :
                 <form onSubmit={handleSubmit}>
-                  <div className="form-title"><span>REQUEST A QUOTATION</span><span>ALL FIELDS MARKED * ARE REQUIRED</span></div>
+                  <div className="form-title"><span>{isGeneralInquiry ? "BUSINESS INQUIRY" : "REQUEST A QUOTATION"}</span><span>ALL FIELDS MARKED * ARE REQUIRED</span></div>
                   <div className="form-grid">
                     <label>Company name *<input required value={form.company} onChange={e=>update("company",e.target.value)} placeholder="Your company"/></label>
                     <label>Contact person *<input required value={form.contact} onChange={e=>update("contact",e.target.value)} placeholder="Full name"/></label>
                     <label>Email address *<input required type="email" value={form.email} onChange={e=>update("email",e.target.value)} placeholder="name@company.com"/></label>
                     <label>Phone number<input value={form.phone} onChange={e=>update("phone",e.target.value)} placeholder="+63"/></label>
-                    <label className="full">Service required *<select required value={form.service} onChange={e=>update("service",e.target.value)}><option value="">Select a service</option>{services.map(s=><option key={s.n}>{s.title}</option>)}</select></label>
-                    <label>Origin *<input required value={form.origin} onChange={e=>update("origin",e.target.value)} placeholder="Pickup location"/></label>
-                    <label>Destination *<input required value={form.destination} onChange={e=>update("destination",e.target.value)} placeholder="Delivery location"/></label>
-                    <label className="full">Cargo details *<textarea required rows={3} value={form.cargo} onChange={e=>update("cargo",e.target.value)} placeholder="Cargo type, estimated weight, dimensions, handling requirements..."/></label>
-                    <label className="full">Preferred schedule<input value={form.schedule} onChange={e=>update("schedule",e.target.value)} placeholder="Preferred date / recurring schedule"/></label>
+                    <label className="full">Service required *<select required value={form.service} onChange={e=>update("service",e.target.value)}><option value="">Select a service</option>{services.map(s=><option key={s.n}>{s.title}</option>)}<option value="Business Partnership / Collaboration">Business Partnership / Collaboration</option><option value="Others / General Inquiry">Others / General Inquiry</option></select></label>
+                    {isGeneralInquiry ? (
+                      <label className="full">{form.service === "Business Partnership / Collaboration" ? "Partnership Details *" : "Tell Us About Your Inquiry *"}
+                        <textarea required rows={5} value={form.message} onChange={e=>update("message",e.target.value)}
+                          placeholder={form.service === "Business Partnership / Collaboration" ? "Tell us about your company and the partnership opportunity you would like to explore." : "How can OFFLIMITS assist you?"}/>
+                      </label>
+                    ) : (
+                      <>
+                        <label>Origin *<input required value={form.origin} onChange={e=>update("origin",e.target.value)} placeholder="Pickup location"/></label>
+                        <label>Destination *<input required value={form.destination} onChange={e=>update("destination",e.target.value)} placeholder="Delivery location"/></label>
+                        <label className="full">Cargo details *<textarea required rows={3} value={form.cargo} onChange={e=>update("cargo",e.target.value)} placeholder="Cargo type, estimated weight, dimensions, handling requirements..."/></label>
+                        <label className="full">Preferred schedule<input value={form.schedule} onChange={e=>update("schedule",e.target.value)} placeholder="Preferred date / recurring schedule"/></label>
+                      </>
+                    )}
                   </div>
-                  <div className="form-bottom"><p>Submitting this demo form does not transmit your information.</p><button className="button button-dark" type="submit">Review inquiry <Send size={15}/></button></div>
+                  <div className="form-bottom"><p>Your inquiry will be sent through Formspree.</p><button className="button button-dark" type="submit" disabled={sending}>{sending ? "Sending..." : "Send inquiry"} <Send size={15}/></button></div>
                 </form>
               }
             </div>
