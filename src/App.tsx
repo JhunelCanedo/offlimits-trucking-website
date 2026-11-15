@@ -4,7 +4,7 @@ import {
   ArrowDownRight, ArrowRight, ArrowUpRight, Check,
   ClipboardCheck, FileCheck2, Menu, MapPin, ShieldCheck, Truck,
   Navigation, RadioTower, Building2, Package, Clock3, Handshake,
-  X, Send, Mail, Phone, MessageCircle, Facebook, Instagram, Route, Gauge, ChartNoAxesCombined, ScanLine, BatteryCharging, Moon, ShieldAlert, Search, ShieldX
+  X, Send, Mail, Phone, MessageCircle, Facebook, Instagram, Route, Gauge, ChartNoAxesCombined, ScanLine, BatteryCharging, Moon, ShieldAlert, ShieldX
 } from "lucide-react";
 
 const services = [
