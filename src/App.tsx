@@ -143,7 +143,7 @@ function App() {
   const [sendError, setSendError] = useState("");
   const [form, setForm] = useState({
     company: "", contact: "", email: "", phone: "", service: "",
-    origin: "", destination: "", cargo: "", schedule: "", message: ""
+    origin: "", destination: "", cargo: "", schedule: "", message: "", documentLink: ""
   });
 
   const isGeneralInquiry = form.service === "Business Partnership / Collaboration" || form.service === "Others / General Inquiry";
@@ -170,6 +170,15 @@ function App() {
       setSendError("Please enter a valid phone number (7–15 digits), or leave it blank.");
       return;
     }
+    if (form.documentLink.trim()) {
+      try {
+        const url = new URL(form.documentLink.trim());
+        if (url.protocol !== "https:") throw new Error("Invalid protocol");
+      } catch {
+        setSendError("Please enter a valid HTTPS document-sharing link, or leave the field blank.");
+        return;
+      }
+    }
     setSending(true);
     setSendError("");
     try {
@@ -186,6 +195,7 @@ function App() {
           phone: form.phone,
           service: form.service,
           ...inquiryDetails,
+          ...(form.documentLink.trim() ? { document_link: form.documentLink.trim() } : {}),
           _subject: `OFFLIMITS inquiry: ${form.service}`,
           _replyto: form.email
         })
@@ -515,9 +525,25 @@ function App() {
                         <label>Origin *<input required maxLength={160} value={form.origin} onChange={e=>update("origin",e.target.value)} placeholder="Pickup location"/></label>
                         <label>Destination *<input required maxLength={160} value={form.destination} onChange={e=>update("destination",e.target.value)} placeholder="Delivery location"/></label>
                         <label className="full">Cargo details *<textarea required rows={3} maxLength={3000} value={form.cargo} onChange={e=>update("cargo",e.target.value)} placeholder="Cargo type, estimated weight, dimensions, handling requirements..."/></label>
-                        <label className="full">Preferred schedule<input maxLength={160} value={form.schedule} onChange={e=>update("schedule",e.target.value)} placeholder="Preferred date / recurring schedule"/></label>
+                        <label className="full">Preferred date
+                          <input type="date" min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10)}
+                            value={form.schedule} onChange={e=>update("schedule",e.target.value)}
+                            onKeyDown={e=>{ if (e.key !== "Tab" && e.key !== "Shift") e.preventDefault(); }}
+                            onPaste={e=>e.preventDefault()}
+                            onClick={e=>{ try { e.currentTarget.showPicker?.(); } catch { /* Native date control remains usable. */ } }}
+                            aria-label="Choose preferred date from calendar" />
+                        </label>
                       </>
                     )}
+                    <label className="full">Proposal / Document Link (optional)
+                      <input type="url" inputMode="url" maxLength={1000}
+                        value={form.documentLink} onChange={e=>update("documentLink",e.target.value)}
+                        placeholder="https://drive.google.com/..."
+                        pattern="https://.+" title="Enter an HTTPS document-sharing link" />
+                      <small style={{ display: "block", marginTop: 6, lineHeight: 1.6, fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
+                        Share a Google Drive, OneDrive, or Dropbox link. Please grant our team viewing access and avoid including sensitive personal information.
+                      </small>
+                    </label>
                   </div>
                   <div className="form-bottom"><p>Your inquiry will be sent through Formspree.</p><button className="button button-dark" type="submit" disabled={sending}>{sending ? "Sending..." : "Send inquiry"} <Send size={15}/></button></div>
                 </form>

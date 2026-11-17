@@ -214,3 +214,20 @@ h2{font:800 clamp(42px,5vw,67px)/1.04 Manrope,sans-serif;letter-spacing:-3.5px;m
 .ol-standard-details ul{padding-top:20px}
 .ol-standard-details:focus-within summary{outline-offset:5px}
 @media(max-width:760px){.ol-standard-card{min-height:0}.ol-standard-details{margin-top:25px}}
+
+/* OFFLIMITS — Mobile contact form first */
+@media (max-width: 768px) {
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .contact-layout .form-wrap {
+    order: -1;
+  }
+
+  .contact-layout .contact-aside {
+    order: 0;
+  }
+}
+
